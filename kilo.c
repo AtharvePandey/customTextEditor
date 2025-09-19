@@ -1,5 +1,5 @@
 
-//  ___start of includes___
+/*** includes ***/
 
 // Provides functions and structures to control terminal I/O
 // (e.g., tcgetattr/tcsetattr to get/set terminal attributes)
@@ -41,15 +41,26 @@
 //this header file allows us to use error numbers
 #include <errno.h>
 
-//  ___end of includes___
+/*** end includes ***/
+////////////////////////////////////////////////////////////////////////////////
+/*** defines ***/
 
-// any global variables
+// the macro sets the upper 3 bits of the character to 0. This mirrors what the Ctrl key 
+// does in the terminal: it strips bits 5 and 6 from whatever key 
+// you press in combination with Ctrl, and sends that to the shell
+//in binary its 00011111
+#define CTRL_KEY(x) ((x) & 0x1f)
+
+/*** end defines ***/
+////////////////////////////////////////////////////////////////////////////////
+/*** global variables ***/
 
 //this saves our termial state so we can reset out of raw mode after program exits
 struct termios globalTerminalState;
 
-
-//  ___start of function implementations___
+/*** end global variables ***/
+////////////////////////////////////////////////////////////////////////////////
+/*** terminal ***/
 
 
 //this function is for error handling, using perror and exit syscalls
@@ -172,6 +183,9 @@ void enableRawMode()
     // the TCSAFLUSH macro just waits to update changes after we flush input commands
 }
 
+/*** end terminal ***/
+////////////////////////////////////////////////////////////////////////////////
+/*** init ***/
 int main()
 {
 
@@ -191,10 +205,13 @@ int main()
             //lets print ascii and how the character is via %c
             printf("ascii: %d, character: '%c'\r\n", c, c);
         }
-        if(c == 'q'){
-            break;
+        if(c == CTRL_KEY('q')){
+            break; //now we can type q, but when we type ctrl q the program breaks
         }
     }
 
     return 0;
 }
+
+/*** end init ***/
+////////////////////////////////////////////////////////////////////////////////
