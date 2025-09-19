@@ -136,6 +136,16 @@ void enableRawMode()
     raw.c_iflag &= ~(BRKINT);
     raw.c_iflag &= ~(INPCK);
     raw.c_iflag &= ~(ISTRIP);
+
+    //we set the c_cc field for control characters
+    //vmin and vtime are gonna be 2 macros within the field that we set
+    //vmin is the minimum number of bytes the terminal should read before returning
+    //and vtime is the amount of waiting time before read() returns
+
+    raw.c_cc[VMIN] = 0; //return 0 if nothing is read
+    raw.c_cc[VTIME] = 1; //wait 1/10ths of a second before read() returns
+
+
     // now to update the terminal, we just have to
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
     // the TCSAFLUSH macro just waits to update changes after we flush input commands
@@ -146,9 +156,9 @@ int main()
 
     enableRawMode();
 
-    char c; // this is a character, can store 1 byte of input
-
-    while (read(STDIN_FILENO, &c, 1) == 1 && c != 'q'){
+    while (1){
+        char c = '\0'; // this is a character, can store 1 byte of input null by default
+        read(STDIN_FILENO, &c, 1);  
         //for every character typed, we want to display it to the shell
         //but to do that, we need to makesure the character is printable
         if(iscntrl(c)){ //tests if the character is a control character i.e \t
@@ -157,6 +167,9 @@ int main()
         }else{
             //lets print ascii and how the character is via %c
             printf("ascii: %d, character: '%c'\r\n", c, c);
+        }
+        if(c == 'q'){
+            break;
         }
     }
 
