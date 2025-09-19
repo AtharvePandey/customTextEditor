@@ -1,0 +1,10 @@
+# Ignore all binary files (common extensions)
+*.exe
+*.out
+*.bin
+*.o
+*.so
+*.dll
+kilo
+# Ignore kilo.dSYM directory
+kilo.dSYM/
