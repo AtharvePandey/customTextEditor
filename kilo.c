@@ -62,7 +62,9 @@ void error(const char * s){ //a const string, we make const to ensure string doe
 //resets anything after program exits
 void disableRawMode()
 {
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &globalTerminalState) == -1 ? error("error disabling raw mode in disableRawMode()") : 0;
+    if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &globalTerminalState) == -1){
+        error("error disabling raw mode in disableRawMode()");
+    }
 }
 
 //this function turns off some default terminal macros
