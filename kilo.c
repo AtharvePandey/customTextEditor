@@ -110,8 +110,12 @@ int main()
     while (read(STDIN_FILENO, &c, 1) == 1 && c != 'q'){
         //for every character typed, we want to display it to the shell
         //but to do that, we need to makesure the character is printable
-        if(iscntrl(c)){ //tests if the character is a control character
-
+        if(iscntrl(c)){ //tests if the character is a control character i.e \t
+            //if it is a control character, we print the ascii value
+            printf("%d\n", c);
+        }else{
+            //lets print ascii and how the character is via %c
+            printf("ascii: %d, character: '%c'\n", c, c);
         }
     }
 
