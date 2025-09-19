@@ -50,6 +50,8 @@ void disableRawMode()
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &globalTerminalState);
 }
 
+//this function turns off some default terminal macros
+//so that our text editor program behaves as it should...
 void enableRawMode()
 {
 
@@ -78,6 +80,30 @@ void enableRawMode()
         //     Games in the terminal → move a character with w/a/s/d without waiting for Enter.
         //     REPLs / shells → might want custom line editing.
 
+    //ISIG
+    //  What it does:
+    //      Handles signal interrupts like ctrl c and z
+
+    //IXON
+    //  What it does:
+    //      Handles ctrl s and q. ctrl s would stop terminal from showing output
+    //      ctrl q would resume that; we don't need it so we will turn it off
+
+    //IEXTEN
+    //  What it does:
+    //      Handles ctrl v, which allows us to send control characters, but we dont
+    //      need it
+
+    //ICRNL
+    //  What it does:
+    //      Handles ctrl m; now all letters are there, but m because it is a special character
+    //      so this disables that behavior
+
+    //OPOST
+    //  What it does:
+    //      To get the text-editor behavior, we need to stop having newline be translated
+    //      into \r\n (new line with return so it goes to the start)
+
     // basically termios.c_lflag is a 32bit binary value
     // each bit is either 1 or 0
     // to turn of echo, the flag is 00000000000000000000000000001000 (echo is 4th bit)
@@ -94,7 +120,22 @@ void enableRawMode()
 
     raw.c_lflag &= ~(ECHO); // this sets the echo flag to off
     raw.c_lflag &= ~(ICANON); //following same logic as above, we disable icanon
+    raw.c_lflag &= ~(ISIG); //same here
+    raw.c_lflag &= ~(IEXTEN);
 
+    raw.c_iflag &= ~(ISIG);
+    raw.c_iflag &= ~(ICRNL);
+
+    raw.c_oflag &= ~(OPOST); //now we write \r\n wherever we want a newline
+
+    //below we turn off a bunch of semi random flags
+    //at some point someone decided these flags have to be turned off
+    //for rawmode, and although it might not make a difference
+    //we will do it too
+    raw.c_cflag |= (CS8);
+    raw.c_iflag &= ~(BRKINT);
+    raw.c_iflag &= ~(INPCK);
+    raw.c_iflag &= ~(ISTRIP);
     // now to update the terminal, we just have to
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
     // the TCSAFLUSH macro just waits to update changes after we flush input commands
@@ -112,10 +153,10 @@ int main()
         //but to do that, we need to makesure the character is printable
         if(iscntrl(c)){ //tests if the character is a control character i.e \t
             //if it is a control character, we print the ascii value
-            printf("%d\n", c);
+            printf("%d\r\n", c);
         }else{
             //lets print ascii and how the character is via %c
-            printf("ascii: %d, character: '%c'\n", c, c);
+            printf("ascii: %d, character: '%c'\r\n", c, c);
         }
     }
 
