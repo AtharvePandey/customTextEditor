@@ -38,16 +38,31 @@
 //so we will use iscntrl() to check
 #include <ctype.h>
 
+//this header file allows us to use error numbers
+#include <errno.h>
+
 //  ___end of includes___
 
 // any global variables
+
+//this saves our termial state so we can reset out of raw mode after program exits
 struct termios globalTerminalState;
+
 
 //  ___start of function implementations___
 
+
+//this function is for error handling, using perror and exit syscalls
+void error(const char * s){ //a const string, we make const to ensure string doesnt get changed within function
+    perror(s);
+    exit(1);
+}
+
+
+//resets anything after program exits
 void disableRawMode()
 {
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &globalTerminalState);
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &globalTerminalState) == -1 ? error("error disabling raw mode in disableRawMode()") : 0;
 }
 
 //this function turns off some default terminal macros
@@ -109,7 +124,9 @@ void enableRawMode()
     // to turn of echo, the flag is 00000000000000000000000000001000 (echo is 4th bit)
     // and so we invert it, and then & with c_lflag to set that bit to 0
 
-    tcgetattr(STDIN_FILENO, &globalTerminalState); // populates raw with this shells attributes
+    if(tcgetattr(STDIN_FILENO, &globalTerminalState) == -1){// populates raw with this shells attributes
+        error("error getting attributes in enableRawMode()");
+    } 
     atexit(disableRawMode);                        // when the program exits, reset the terminal to default by calling function
     // atexit comes from stdlib
     struct termios raw = globalTerminalState; // make a copy here of the og default state
@@ -147,7 +164,9 @@ void enableRawMode()
 
 
     // now to update the terminal, we just have to
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+    if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1){
+        error("error setting attributes in enableRawMode()");
+    }
     // the TCSAFLUSH macro just waits to update changes after we flush input commands
 }
 
@@ -158,7 +177,9 @@ int main()
 
     while (1){
         char c = '\0'; // this is a character, can store 1 byte of input null by default
-        read(STDIN_FILENO, &c, 1);  
+        if(read(STDIN_FILENO, &c, 1) == -1 && errno == EAGAIN){
+            error("error in reading input from read()");
+        }  
         //for every character typed, we want to display it to the shell
         //but to do that, we need to makesure the character is printable
         if(iscntrl(c)){ //tests if the character is a control character i.e \t
