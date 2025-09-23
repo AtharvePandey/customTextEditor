@@ -1,3 +1,5 @@
+//terminal and shell are the same thing
+
 
 /*** includes ***/
 
@@ -40,6 +42,14 @@
 
 //this header file allows us to use error numbers
 #include <errno.h>
+
+//this header file will let us find the window size of our terminal
+//so that we can get our text editor to fit the screen
+//provides an api ioctl which populates a struct that has 2 datapoints
+//which give row/column of current terminal
+//the winsize struct itself is defined in ttycom.h
+//which internally includes below header file, so we can just include this one
+#include <sys/ioctl.h>
 
 /*** end includes ***/
 ////////////////////////////////////////////////////////////////////////////////
@@ -228,6 +238,26 @@ char readKey(){
     return c;
 }
 
+//this function will set the row/column of the current terminal
+//and return 1 upon success else -1
+
+int getRowColumn(int * row, int * column){
+    //per documentation , the struct is winsize (ctrl/cmd click the include above)
+    struct winsize size;
+    if(ioctl(STDOUT_FILENO, TIOCGWINSZ, &size) == -1 || size.ws_col == 0){
+        //if the api fails or if there aren't any columns
+        //then that means we can't render anything...
+        return -1;
+
+        //the TIOCGWINSZ macro is just for getting windows size
+    }
+
+    //this is how you would return multiple values in c...by setting pointers to something
+    *row = size.ws_row;
+    *column = size.ws_col;
+    return 1;
+}
+
 /*** end terminal ***/
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -241,6 +271,9 @@ void drawRows(){
         write(STDOUT_FILENO, "~\r\n", 3);
         //we are writing out a ~, recall \r\n for new line, and 3 is the num bytes
         //and as mentioned above, the macro is for writing out to the shell
+
+        //also for now we keep 24, but later we can just use a function to calculate
+        //number of ~ needed
         
     }
 }
