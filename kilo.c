@@ -50,7 +50,7 @@
 // which internally includes below header file, so we can just include this one
 #include <sys/ioctl.h>
 
-//we need access to string operations
+// we need access to string operations
 #include <string.h>
 
 /*** end includes ***/
@@ -63,8 +63,8 @@
 // in binary its 00011111; so x & 00011111 maps to ctrl + someLetter
 #define CTRL_KEY(x) ((x) & 0x1f)
 
-//this macro will represent the current version of the editor
-//we will change this sometime
+// this macro will represent the current version of the editor
+// we will change this sometime
 #define VERSION "1.0.0"
 
 /*** end defines ***/
@@ -85,6 +85,9 @@ struct globalTerminalState
 
     // this represents the number of cols of our terminal
     int cols;
+
+    // this represents rows and columns, and where our cursor is
+    int cx, cy;
 };
 
 struct globalTerminalState globalSettings;
@@ -267,10 +270,10 @@ int getCursorPosition(int *row, int *column)
         return -1;
     }
 
-    printf("\r\n"); // print a new line 
+    printf("\r\n"); // print a new line
 
-    //we want to keep reading characters until we get "R"; basically forming a temp string
-    //via the terminal
+    // we want to keep reading characters until we get "R"; basically forming a temp string
+    // via the terminal
     while (i < sizeof(buf) - 1)
     {
         if (read(STDIN_FILENO, &buf[i], 1) != 1)
@@ -279,14 +282,14 @@ int getCursorPosition(int *row, int *column)
             break;
         i++;
     }
-    buf[i] = '\0'; //we end the string
-    if (buf[0] != '\x1b' || buf[1] != '[') //the start should be \x1b[
+    buf[i] = '\0';                         // we end the string
+    if (buf[0] != '\x1b' || buf[1] != '[') // the start should be \x1b[
     {
         return -1;
     }
-    if (sscanf(&buf[2], "%d;%d", row, column) != 2) //and after that should give us row,col
+    if (sscanf(&buf[2], "%d;%d", row, column) != 2) // and after that should give us row,col
     {
-        //return -1 if we can't populate it for some reason
+        // return -1 if we can't populate it for some reason
         return -1;
     }
     return 1;
@@ -328,36 +331,41 @@ int getRowColumn(int *row, int *column)
 
 /*** append buffer ***/
 
-//this section is to make a dynamic string
-//this way we don't call write() too many times
-//think of it like a string builder from java
-struct dynamicStringStruct{
+// this section is to make a dynamic string
+// this way we don't call write() too many times
+// think of it like a string builder from java
+struct dynamicStringStruct
+{
     char *str;
     int len;
 };
 
 #define DYN_STR_INIT {NULL, 0}
 
-//this function will append a string to our ongoing dynamic string the struct
-void appendString(const char * appendString, int len, struct dynamicStringStruct * dss){
+// this function will append a string to our ongoing dynamic string the struct
+void appendString(const char *appendString, int len, struct dynamicStringStruct *dss)
+{
     // strcat(dss->str, appendString);
     // dss->len += len;
-    //need to do above, but with alloc tools in c
-    char * temp = realloc(dss->str, dss->len + len); //reallocate more space for dss.str by its curr length + passed in one
+    // need to do above, but with alloc tools in c
+    char *temp = realloc(dss->str, dss->len + len); // reallocate more space for dss.str by its curr length + passed in one
 
-    if(temp == NULL){
+    if (temp == NULL)
+    {
         error("can't allocate memory in appendString()");
         return;
-    }else{
-        memcpy(&temp[dss->len], appendString, len); //copyover the new string into new memloc starting from dss.len
+    }
+    else
+    {
+        memcpy(&temp[dss->len], appendString, len); // copyover the new string into new memloc starting from dss.len
         dss->str = temp;
         dss->len += len;
     }
-
 }
 
-//this function will reset the struct
-void freeString(struct dynamicStringStruct * dss){
+// this function will reset the struct
+void freeString(struct dynamicStringStruct *dss)
+{
     free(dss->str);
     dss->len = 0;
 }
@@ -370,42 +378,49 @@ void freeString(struct dynamicStringStruct * dss){
 // this function will start off by drawing ~ for each row
 // we will start by doing what vim does in an empty file
 //...draw ~
-void drawRows(struct dynamicStringStruct * dss)
+void drawRows(struct dynamicStringStruct *dss)
 {
     for (int i = 0; i < globalSettings.rows; i++)
     {
-        //lets write a message for our editor when it is first opened
-        //display it in the middle third
-        if(i == globalSettings.rows / 3){
-            //we are a third of the way down
-            //lets construct our char
+        // lets write a message for our editor when it is first opened
+        // display it in the middle third
+        if (i == globalSettings.rows / 3)
+        {
+            // we are a third of the way down
+            // lets construct our char
             char message[80];
             int len = snprintf(message, sizeof(message), "Kilo Editor version: %s", VERSION);
-            //snprintf stores message rather than printing it, and returns size of that message
-            //if the size is out of bounds, we have to reset our bounds
-            if(len > globalSettings.cols){
+            // snprintf stores message rather than printing it, and returns size of that message
+            // if the size is out of bounds, we have to reset our bounds
+            if (len > globalSettings.cols)
+            {
                 len = globalSettings.cols;
             }
-            int padding = (globalSettings.cols - len)/2;
-            if(padding){
+            int padding = (globalSettings.cols - len) / 2;
+            if (padding)
+            {
                 appendString("~", 1, dss);
                 padding--;
             }
-            while(padding--){
+            while (padding--)
+            {
                 appendString(" ", 1, dss);
             }
             appendString(message, len, dss);
-        }else{
+        }
+        else
+        {
             appendString("~", 1, dss);
             // we are writing out a ~, recall \r\n for new line, and 3 is the num bytes
             // and as mentioned above, the macro is for writing out to the shell
         }
 
-        //erase a bit of this current line
+        // erase a bit of this current line
         appendString("\x1b[K", 3, dss);
 
-        //small error when the last line is an empty new line with no ~
-        if(i < globalSettings.rows - 1){
+        // small error when the last line is an empty new line with no ~
+        if (i < globalSettings.rows - 1)
+        {
             appendString("\r\n", 2, dss);
         }
     }
@@ -433,20 +448,23 @@ void refreshScreen()
      *0J, erases from cursor to end of screen (also just *J)
      */
 
-     //this first appendString is to hide the cursor during refreshing
+    // this first appendString is to hide the cursor during refreshing
     appendString("\x1b[?25l", 6, &dss);
-
-    appendString("\x1b[H", 3, &dss);  // this one moves cursor back up to top
 
     // after we refresh the screen, lets revert back to the default
     // which is drawing ~
     drawRows(&dss);
+
+    // now lets move cursor to the correct position
+    char buf[32];
+    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", globalSettings.cx + 1,  globalSettings.cy + 1);
+    appendString(buf, strlen(buf), &dss);
     // and then we recenter the cursor
     appendString("\x1b[H", 3, &dss);
     appendString("\x1b[?25l", 6, &dss);
 
-    //once we have all the strings appended, lets writeout to shell
-    write(STDOUT_FILENO, dss.str, dss.len); //note how now we only have 1 write call
+    // once we have all the strings appended, lets writeout to shell
+    write(STDOUT_FILENO, dss.str, dss.len); // note how now we only have 1 write call
     // all the macros, and 'codes' or escape sequences are predefined in library
 
     freeString(&dss);
@@ -478,17 +496,21 @@ void processKey()
 /*** end input ***/
 ////////////////////////////////////////////////////////////////////////////////
 
+/*** init ***/
 // this method will populate the terminal's rows and column numbers
 // and will act as initializing our global terminal struct
+
 void setupGlobStruct()
 {
+    globalSettings.cx = 0;
+    globalSettings.cy = 0;
+
     if (getRowColumn(&globalSettings.rows, &globalSettings.cols) == -1)
     {
-        error("can't get windows size in getWindowSize()");
+        error("can't get windows size in setupGlobStruct()");
     }
 }
 
-/*** init ***/
 int main()
 {
 
