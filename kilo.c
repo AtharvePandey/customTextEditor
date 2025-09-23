@@ -225,6 +225,18 @@ char readKey(){
 
 /*** output ***/
 
+//this function will start off by drawing ~ for each row
+//we will start by doing what vim does in an empty file
+//...draw ~
+void drawRows(){
+    for(int i = 0; i<24; i++){
+        write(STDOUT_FILENO, "~\r\n", 3);
+        //we are writing out a ~, recall \r\n for new line, and 3 is the num bytes
+        //and as mentioned above, the macro is for writing out to the shell
+        
+    }
+}
+
 //this function is gonna be clearing the terminal everytime a new character is typed
 //it will refresh the screen
 void refreshScreen(){
@@ -246,6 +258,14 @@ void refreshScreen(){
     */
     write(STDOUT_FILENO, "\x1b[2J", 4); //clears screen
     write(STDOUT_FILENO, "\x1b[H", 3); //this one moves cursor back up to top
+
+    //after we refresh the screen, lets revert back to the default
+    //which is drawing ~
+    drawRows();
+    //and then we recenter the cursor
+    write(STDOUT_FILENO, "\x1b[H", 3);
+
+    //all the macros, and 'codes' or escape sequences are predefined in library
 }
 
 /*** end output ***/
