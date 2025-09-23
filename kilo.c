@@ -48,7 +48,7 @@
 // the macro sets the upper 3 bits of the character to 0. This mirrors what the Ctrl key 
 // does in the terminal: it strips bits 5 and 6 from whatever key 
 // you press in combination with Ctrl, and sends that to the shell
-//in binary its 00011111
+//in binary its 00011111; so x & 00011111 maps to ctrl + someLetter
 #define CTRL_KEY(x) ((x) & 0x1f)
 
 /*** end defines ***/
@@ -65,6 +65,7 @@ struct termios globalTerminalState;
 
 //this function is for error handling, using perror and exit syscalls
 void error(const char * s){ //a const string, we make const to ensure string doesnt get changed within function
+    //its just good code practice to have a const variable when not being changed
     perror(s);
     exit(1);
 }
@@ -75,6 +76,10 @@ void disableRawMode()
 {
     if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &globalTerminalState) == -1){
         error("error disabling raw mode in disableRawMode()");
+
+        //macro STDIN_FILENO refers to the terminal
+        // TCSAFLUSH is basically when? when we flushed out the final output of this program
+        //and we pass in address of the global terminal struct
     }
 }
 
@@ -140,7 +145,7 @@ void enableRawMode()
     if(tcgetattr(STDIN_FILENO, &globalTerminalState) == -1){// populates raw with this shells attributes
         error("error getting attributes in enableRawMode()");
     } 
-    atexit(disableRawMode);                        // when the program exits, reset the terminal to default by calling function
+    atexit(disableRawMode);// when the program exits, reset the terminal to default by calling function
     // atexit comes from stdlib
     struct termios raw = globalTerminalState; // make a copy here of the og default state
 
@@ -183,31 +188,85 @@ void enableRawMode()
     // the TCSAFLUSH macro just waits to update changes after we flush input commands
 }
 
+
+//gonna make 2 functions to split up the while loop, one will be calling read
+//and making sure theres no error in that
+//the other will check if the character is a ctrl key and process it accordingly
+
+//this function will return a char, and is essentially gonna read in a character
+//will throw error if there is a problem reading
+
+char readKey(){
+    int readVal; //this will store the value read returns
+    char c;
+
+    while((readVal = read(STDIN_FILENO, &c, 1)) != 1){
+        if(readVal == -1 && errno == EAGAIN){
+            error("error in reading input from read()");
+        }
+    }
+
+    return c;
+}
+
 /*** end terminal ***/
 ////////////////////////////////////////////////////////////////////////////////
+
+/*** output ***/
+
+//this function is gonna be clearing the terminal everytime a new character is typed
+//it will refresh the screen
+void refreshScreen(){
+    //in write, the stdout_fileno macro says to write to the terminal
+    //we are writing 4 bytes. 
+
+    //the first byte is \x1b which is an escape sequence
+    //and the next 3 bytes are [2J; 
+
+    //writing an escape sequence to the terminal means starting with
+    //\x1b, and then adding [ after. then based off a table of sequences
+    //we can instruct the terminal to do certain things (change color, clear etc)
+    //since all esc sequences have \x1b[, lets call it *;
+    //now here are a few examples:
+    /*
+        *1J, erases everything in terminal up to the cursor
+        *2J, erases entire screen
+        *0J, erases from cursor to end of screen (also just *J)    
+    */
+    write(STDOUT_FILENO, "\x1b[2J", 4); //clears screen
+    write(STDOUT_FILENO, "\x1b[H", 3); //this one moves cursor back up to top
+}
+
+/*** end output ***/
+////////////////////////////////////////////////////////////////////////////////
+
+/*** input ***/
+
+//this function will process key and check if it is a control key bind
+void processKey(){
+    //first get key to process
+    char c = readKey();
+    switch (c){
+        case CTRL_KEY('q'):{
+            exit(0);
+            break;
+        }
+    }
+}
+
+
+/*** end input ***/
+////////////////////////////////////////////////////////////////////////////////
+
 /*** init ***/
 int main()
 {
 
-    enableRawMode();
+    enableRawMode(); 
 
     while (1){
-        char c = '\0'; // this is a character, can store 1 byte of input null by default
-        if(read(STDIN_FILENO, &c, 1) == -1 && errno == EAGAIN){
-            error("error in reading input from read()");
-        }  
-        //for every character typed, we want to display it to the shell
-        //but to do that, we need to makesure the character is printable
-        if(iscntrl(c)){ //tests if the character is a control character i.e \t
-            //if it is a control character, we print the ascii value
-            printf("%d\r\n", c);
-        }else{
-            //lets print ascii and how the character is via %c
-            printf("ascii: %d, character: '%c'\r\n", c, c);
-        }
-        if(c == CTRL_KEY('q')){
-            break; //now we can type q, but when we type ctrl q the program breaks
-        }
+        refreshScreen();
+        processKey();
     }
 
     return 0;
