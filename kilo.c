@@ -326,6 +326,7 @@ int getRowColumn(int *row, int *column)
 
 //this section is to make a dynamic string
 //this way we don't call write() too many times
+//think of it like a string builder from java
 struct dynamicStringStruct{
     char *str;
     int len;
@@ -365,17 +366,17 @@ void freeString(struct dynamicStringStruct * dss){
 // this function will start off by drawing ~ for each row
 // we will start by doing what vim does in an empty file
 //...draw ~
-void drawRows()
+void drawRows(struct dynamicStringStruct * dss)
 {
     for (int i = 0; i < globalSettings.rows; i++)
     {
-        write(STDOUT_FILENO, "~", 1);
+        appendString("~", 1, dss);
         // we are writing out a ~, recall \r\n for new line, and 3 is the num bytes
         // and as mentioned above, the macro is for writing out to the shell
 
         //small error when the last line is an empty new line with no ~
         if(i < globalSettings.rows - 1){
-            write(STDOUT_FILENO, "\r\n", 2);
+            appendString("\r\n", 2, dss);
         }
     }
 }
@@ -384,6 +385,7 @@ void drawRows()
 // it will refresh the screen
 void refreshScreen()
 {
+    struct dynamicStringStruct dss = DYN_STR_INIT;
     // in write, the stdout_fileno macro says to write to the terminal
     // we are writing 4 bytes.
 
@@ -400,16 +402,20 @@ void refreshScreen()
      *2J, erases entire screen
      *0J, erases from cursor to end of screen (also just *J)
      */
-    write(STDOUT_FILENO, "\x1b[2J", 4); // clears screen
-    write(STDOUT_FILENO, "\x1b[H", 3);  // this one moves cursor back up to top
+    appendString("\x1b[2J", 4, &dss); // clears screen
+    appendString("\x1b[H", 3, &dss);  // this one moves cursor back up to top
 
     // after we refresh the screen, lets revert back to the default
     // which is drawing ~
-    drawRows();
+    drawRows(&dss);
     // and then we recenter the cursor
-    write(STDOUT_FILENO, "\x1b[H", 3);
+    appendString("\x1b[H", 3, &dss);
 
+    //once we have all the strings appended, lets writeout to shell
+    write(STDOUT_FILENO, dss.str, dss.len); //note how now we only have 1 write call
     // all the macros, and 'codes' or escape sequences are predefined in library
+
+    freeString(&dss);
 }
 
 /*** end output ***/
