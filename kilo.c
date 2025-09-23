@@ -66,6 +66,17 @@ struct termios globalTerminalState;
 //this function is for error handling, using perror and exit syscalls
 void error(const char * s){ //a const string, we make const to ensure string doesnt get changed within function
     //its just good code practice to have a const variable when not being changed
+
+    //before that, its better if we refresh the screen so no garbage is left when the program
+    //is forced to quit
+
+    //this logic to refresh screen and what it means is in refreshScreen() function
+    //but thats defined below, so i can't call it here
+    //so ill just copy paste the things in there into here rather than moving function
+    //because the function might change in future.
+    write(STDOUT_FILENO, "\x1b[2J", 4); //clears screen
+    write(STDOUT_FILENO, "\x1b[H", 3); //this one moves cursor back up to top
+
     perror(s);
     exit(1);
 }
@@ -248,6 +259,9 @@ void processKey(){
     char c = readKey();
     switch (c){
         case CTRL_KEY('q'):{
+            //like in error()
+            write(STDOUT_FILENO, "\x1b[2J", 4); //clears screen
+            write(STDOUT_FILENO, "\x1b[H", 3); //this one moves cursor back up to top
             exit(0);
             break;
         }
