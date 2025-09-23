@@ -55,8 +55,16 @@
 ////////////////////////////////////////////////////////////////////////////////
 /*** global variables ***/
 
-//this saves our termial state so we can reset out of raw mode after program exits
-struct termios globalTerminalState;
+// //this saves our termial state so we can reset out of raw mode after program exits
+// struct termios globalTerminalState;
+
+//better to encapsulate into a struct, so that we can add/group other stuff
+struct globalTerminalState{
+    //this struct stores the global state of our terminal
+    struct termios globalTerminalState;
+};
+
+struct globalTerminalState globalSettings;
 
 /*** end global variables ***/
 ////////////////////////////////////////////////////////////////////////////////
@@ -85,7 +93,7 @@ void error(const char * s){ //a const string, we make const to ensure string doe
 //resets anything after program exits
 void disableRawMode()
 {
-    if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &globalTerminalState) == -1){
+    if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &globalSettings.globalTerminalState) == -1){
         error("error disabling raw mode in disableRawMode()");
 
         //macro STDIN_FILENO refers to the terminal
@@ -153,12 +161,12 @@ void enableRawMode()
     // to turn of echo, the flag is 00000000000000000000000000001000 (echo is 4th bit)
     // and so we invert it, and then & with c_lflag to set that bit to 0
 
-    if(tcgetattr(STDIN_FILENO, &globalTerminalState) == -1){// populates raw with this shells attributes
+    if(tcgetattr(STDIN_FILENO, &globalSettings.globalTerminalState) == -1){// populates raw with this shells attributes
         error("error getting attributes in enableRawMode()");
     } 
     atexit(disableRawMode);// when the program exits, reset the terminal to default by calling function
     // atexit comes from stdlib
-    struct termios raw = globalTerminalState; // make a copy here of the og default state
+    struct termios raw = globalSettings.globalTerminalState; // make a copy here of the og default state
 
     // tcflag_t flag = raw.c_lflag;
     // //unsigned long
