@@ -63,6 +63,10 @@
 // in binary its 00011111; so x & 00011111 maps to ctrl + someLetter
 #define CTRL_KEY(x) ((x) & 0x1f)
 
+//this macro will represent the current version of the editor
+//we will change this sometime
+#define VERSION "1.0.0"
+
 /*** end defines ***/
 ////////////////////////////////////////////////////////////////////////////////
 /*** global variables ***/
@@ -370,9 +374,32 @@ void drawRows(struct dynamicStringStruct * dss)
 {
     for (int i = 0; i < globalSettings.rows; i++)
     {
-        appendString("~", 1, dss);
-        // we are writing out a ~, recall \r\n for new line, and 3 is the num bytes
-        // and as mentioned above, the macro is for writing out to the shell
+        //lets write a message for our editor when it is first opened
+        //display it in the middle third
+        if(i == globalSettings.rows / 3){
+            //we are a third of the way down
+            //lets construct our char
+            char message[80];
+            int len = snprintf(message, sizeof(message), "Kilo Editor version: %s", VERSION);
+            //snprintf stores message rather than printing it, and returns size of that message
+            //if the size is out of bounds, we have to reset our bounds
+            if(len > globalSettings.cols){
+                len = globalSettings.cols;
+            }
+            int padding = (globalSettings.cols - len)/2;
+            if(padding){
+                appendString("~", 1, dss);
+                padding--;
+            }
+            while(padding--){
+                appendString(" ", 1, dss);
+            }
+            appendString(message, len, dss);
+        }else{
+            appendString("~", 1, dss);
+            // we are writing out a ~, recall \r\n for new line, and 3 is the num bytes
+            // and as mentioned above, the macro is for writing out to the shell
+        }
 
         //erase a bit of this current line
         appendString("\x1b[K", 3, dss);
