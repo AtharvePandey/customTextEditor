@@ -72,6 +72,14 @@
 struct globalTerminalState{
     //this struct stores the global state of our terminal
     struct termios globalTerminalState;
+    
+    //this represents the number of rows of our terminal
+    int rows;
+    
+    //this represents the number of cols of our terminal
+    int cols;
+    
+
 };
 
 struct globalTerminalState globalSettings;
@@ -333,11 +341,20 @@ void processKey(){
 /*** end input ***/
 ////////////////////////////////////////////////////////////////////////////////
 
+//this method will populate the terminal's rows and column numbers
+//and will act as initializing our global terminal struct
+void setupGlobStruct(){
+    if(getRowColumn(&globalSettings.rows, &globalSettings.cols) == -1){
+        error("can't get windows size in getWindowSize()");
+    }
+}
+
 /*** init ***/
 int main()
 {
 
-    enableRawMode(); 
+    enableRawMode();
+    setupGlobStruct();
 
     while (1){
         refreshScreen();
