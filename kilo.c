@@ -374,6 +374,9 @@ void drawRows(struct dynamicStringStruct * dss)
         // we are writing out a ~, recall \r\n for new line, and 3 is the num bytes
         // and as mentioned above, the macro is for writing out to the shell
 
+        //erase a bit of this current line
+        appendString("\x1b[K", 3, dss);
+
         //small error when the last line is an empty new line with no ~
         if(i < globalSettings.rows - 1){
             appendString("\r\n", 2, dss);
@@ -402,7 +405,10 @@ void refreshScreen()
      *2J, erases entire screen
      *0J, erases from cursor to end of screen (also just *J)
      */
-    appendString("\x1b[2J", 4, &dss); // clears screen
+
+     //this first appendString is to hide the cursor during refreshing
+    appendString("\x1b[?25l", 6, &dss);
+
     appendString("\x1b[H", 3, &dss);  // this one moves cursor back up to top
 
     // after we refresh the screen, lets revert back to the default
@@ -410,6 +416,7 @@ void refreshScreen()
     drawRows(&dss);
     // and then we recenter the cursor
     appendString("\x1b[H", 3, &dss);
+    appendString("\x1b[?25l", 6, &dss);
 
     //once we have all the strings appended, lets writeout to shell
     write(STDOUT_FILENO, dss.str, dss.len); //note how now we only have 1 write call
