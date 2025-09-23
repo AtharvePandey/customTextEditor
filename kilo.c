@@ -50,6 +50,9 @@
 // which internally includes below header file, so we can just include this one
 #include <sys/ioctl.h>
 
+//we need access to string operations
+#include <string.h>
+
 /*** end includes ***/
 ////////////////////////////////////////////////////////////////////////////////
 /*** defines ***/
@@ -261,6 +264,9 @@ int getCursorPosition(int *row, int *column)
     }
 
     printf("\r\n"); // print a new line 
+
+    //we want to keep reading characters until we get "R"; basically forming a temp string
+    //via the terminal
     while (i < sizeof(buf) - 1)
     {
         if (read(STDIN_FILENO, &buf[i], 1) != 1)
@@ -269,16 +275,17 @@ int getCursorPosition(int *row, int *column)
             break;
         i++;
     }
-    buf[i] = '\0';
-    if (buf[0] != '\x1b' || buf[1] != '[')
+    buf[i] = '\0'; //we end the string
+    if (buf[0] != '\x1b' || buf[1] != '[') //the start should be \x1b[
     {
         return -1;
     }
-    if (sscanf(&buf[2], "%d;%d", row, column) != 2)
+    if (sscanf(&buf[2], "%d;%d", row, column) != 2) //and after that should give us row,col
     {
+        //return -1 if we can't populate it for some reason
         return -1;
     }
-    return 0;
+    return 1;
 }
 
 // this function will set the row/column of the current terminal
@@ -313,6 +320,44 @@ int getRowColumn(int *row, int *column)
 }
 
 /*** end terminal ***/
+////////////////////////////////////////////////////////////////////////////////
+
+/*** append buffer ***/
+
+//this section is to make a dynamic string
+//this way we don't call write() too many times
+struct dynamicStringStruct{
+    char *str;
+    int len;
+};
+
+#define DYN_STR_INIT {NULL, 0}
+
+//this function will append a string to our ongoing dynamic string the struct
+void appendString(const char * appendString, int len, struct dynamicStringStruct * dss){
+    // strcat(dss->str, appendString);
+    // dss->len += len;
+    //need to do above, but with alloc tools in c
+    char * temp = realloc(dss->str, dss->len + len); //reallocate more space for dss.str by its curr length + passed in one
+
+    if(temp == NULL){
+        error("can't allocate memory in appendString()");
+        return;
+    }else{
+        memcpy(&temp[dss->len], appendString, len); //copyover the new string into new memloc starting from dss.len
+        dss->str = temp;
+        dss->len += len;
+    }
+
+}
+
+//this function will reset the struct
+void freeString(struct dynamicStringStruct * dss){
+    free(dss->str);
+    dss->len = 0;
+}
+
+/*** end append buffer ***/
 ////////////////////////////////////////////////////////////////////////////////
 
 /*** output ***/

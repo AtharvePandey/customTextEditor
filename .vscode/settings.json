@@ -1,6 +1,8 @@
 {
     "files.associations": {
         "termios.h": "c",
-        "ioctl.h": "c"
+        "ioctl.h": "c",
+        "string.h": "c",
+        "_string.h": "c"
     }
 }
